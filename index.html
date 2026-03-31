@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Global Situation Room</title>
+<style>
+
+/* ─── 기본 리셋 ─── */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #0a0e1a;
+  color: #e0e4f0;
+  min-height: 100vh;
+  font-size: 14px;
+}
+
+/* ─── 색상 변수 ─── */
+:root {
+  --red:    #e24b4a;
+  --amber:  #ef9f27;
+  --teal:   #1d9e75;
+  --blue:   #378add;
+  --border: rgba(255,255,255,0.07);
+  --bg2:    rgba(255,255,255,0.03);
+  --t1:     #e0e4f0;
+  --t2:     #c0c8dc;
+  --t3:     #9aa0b4;
+  --t4:     #6b7280;
+}
+
+/* ─── 헤더 ─── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 0.5px solid var(--border);
+  background: #0a0e1a;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.header-left { display: flex; align-items: center; gap: 10px; }
+.live-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: var(--red);
+  animation: blink 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+.title { font-size: 15px; font-weight: 500; letter-spacing: .02em; }
+.subtitle { font-size: 11px; color: var(--t4); margin-top: 1px; }
+.header-time { font-size: 11px; color: var(--t4); }
+
+/* ─── 레짐 바 ─── */
+.regime-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 20px;
+  border-bottom: 0.5px solid var(--border);
+  flex-wrap: wrap;
+}
+.regime-label { font-size: 10px; color: var(--t4); letter-spacing: .07em; text-transform: uppercase; white-space: nowrap; }
+.regime-badge {
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .06em;
+  background: rgba(226,75,74,.18);
+  color: #f09595;
+  border: .5px solid rgba(226,75,74,.45);
+  white-space: nowrap;
+}
+.conf-wrap { flex: 1; min-width: 100px; max-width: 180px; }
+.conf-track { height: 3px; background: rgba(255,255,255,.08); border-radius: 2px; overflow: hidden; }
+.conf-fill  { height: 100%; border-radius: 2px; background: var(--red); width: 78%; }
+.conf-num   { font-size: 10px; color: var(--t4); margin-top: 3px; }
+.scan-btn {
+  margin-left: auto;
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: .5px solid;
+  transition: background .2s;
+}
+.scan-btn.active   { background: rgba(55,138,221,.2);  color: #85b7eb; border-color: rgba(55,138,221,.45); }
+.scan-btn.active:hover { background: rgba(55,138,221,.32); }
+.scan-btn.inactive { background: rgba(255,255,255,.04); color: var(--t4); border-color: rgba(255,255,255,.1); cursor: not-allowed; }
+.scan-btn.scanning { background: rgba(239,159,39,.15); color: #fac775; border-color: rgba(239,159,39,.4); cursor: not-allowed; }
+
+/* 스피너 */
+.spin-icon {
+  width: 11px; height: 11px;
+  border: 1.5px solid rgba(239,159,39,.3);
+  border-top-color: #fac775;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  display: none;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 진행 상태 바 */
+.progress-bar { height: 2px; background: rgba(55,138,221,.1); display: none; }
+.progress-fill { height: 100%; background: var(--blue); width: 0%; transition: width .5s ease; }
+
+/* 마지막 업데이트 */
+.last-update {
+  font-size: 10px; color: var(--t4);
+  padding: 5px 20px;
+  border-bottom: .5px solid var(--border);
+  display: none;
+}
+
+/* ─── 레짐 판단 한줄 ─── */
+.reason-bar {
+  padding: 7px 20px;
+  font-size: 11px;
+  color: var(--t3);
+  border-bottom: .5px solid var(--border);
+  line-height: 1.5;
+}
+.reason-bar span { color: var(--t4); }
+
+/* ─── 4분할 그리드 ─── */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+}
+@media (max-width: 540px) {
+  .grid { grid-template-columns: 1fr; }
+}
+.panel { background: #0a0e1a; padding: 16px 18px; }
+
+/* ─── 패널 타이틀 ─── */
+.ptitle {
+  font-size: 10px;
+  color: var(--t4);
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  margin-bottom: 11px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.pdot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+.d-red   { background: var(--red); }
+.d-amber { background: var(--amber); }
+.d-teal  { background: var(--teal); }
+.d-blue  { background: var(--blue); }
+
+/* ─── 지정학 핫스팟 카드 ─── */
+.hotspot {
+  padding: 9px 11px;
+  background: var(--bg2);
+  border-radius: 6px;
+  margin-bottom: 7px;
+  border-left: 2px solid var(--red);
+}
+.hotspot.amber { border-left-color: var(--amber); }
+.hotspot.teal  { border-left-color: var(--teal); }
+.hotspot-title { font-size: 12px; font-weight: 500; color: var(--t1); margin-bottom: 3px; }
+.hotspot-body  { font-size: 11px; color: var(--t3); line-height: 1.55; }
+
+/* ─── 시그널 행 ─── */
+.srow {
+  display: flex;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: .5px solid rgba(255,255,255,.04);
+}
+.srow:last-child { border-bottom: none; }
+.sname { font-size: 11px; color: var(--t2); flex: 1; min-width: 0; }
+.sbar-wrap { width: 64px; height: 3px; background: rgba(255,255,255,.07); border-radius: 2px; margin: 0 8px; flex-shrink: 0; }
+.sbar      { height: 100%; border-radius: 2px; }
+.b-red   { background: var(--red); }
+.b-amber { background: var(--amber); }
+.b-teal  { background: var(--teal); }
+.sval {
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  min-width: 52px;
+  white-space: nowrap;
+}
+.up  { color: #f09595; }
+.dn  { color: #5dcaa5; }
+.mid { color: #fac775; }
+
+/* ─── 섹션 구분 ─── */
+.gap { height: 12px; }
+
+/* ─── A-System 신호 영역 ─── */
+.signal-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 13px;
+  flex-wrap: wrap;
+}
+.dir-badge {
+  padding: 5px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.dir-sell    { background: rgba(226,75,74,.15); color: #f09595; border: .5px solid rgba(226,75,74,.35); }
+.dir-buy     { background: rgba(29,158,117,.15); color: #5dcaa5; border: .5px solid rgba(29,158,117,.35); }
+.dir-neutral { background: rgba(239,159,39,.15); color: #fac775; border: .5px solid rgba(239,159,39,.35); }
+
+.stat-box { display: flex; flex-direction: column; gap: 2px; }
+.stat-label { font-size: 10px; color: var(--t4); }
+.stat-val   { font-size: 16px; font-weight: 500; }
+
+.sec-title { font-size: 10px; color: var(--t4); margin-bottom: 5px; letter-spacing: .04em; }
+.tags { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
+.tag-g {
+  padding: 3px 9px; border-radius: 11px; font-size: 11px;
+  background: rgba(29,158,117,.13); color: #5dcaa5;
+  border: .5px solid rgba(29,158,117,.28);
+}
+.tag-r {
+  padding: 3px 9px; border-radius: 11px; font-size: 11px;
+  background: rgba(226,75,74,.1); color: #f09595;
+  border: .5px solid rgba(226,75,74,.22);
+}
+
+.insight-box {
+  background: rgba(55,138,221,.07);
+  border: .5px solid rgba(55,138,221,.22);
+  border-radius: 7px;
+  padding: 11px 13px;
+}
+.insight-label { font-size: 10px; color: var(--t4); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 6px; }
+.insight-text  { font-size: 11px; color: var(--t2); line-height: 1.65; }
+
+/* ─── API Key 패널 ─── */
+.key-panel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  background: rgba(127,119,221,.07);
+  border-bottom: .5px solid rgba(127,119,221,.25);
+  flex-wrap: wrap;
+}
+.key-panel.saved {
+  background: rgba(29,158,117,.07);
+  border-bottom-color: rgba(29,158,117,.25);
+}
+.key-icon {
+  width: 18px; height: 18px; flex-shrink: 0;
+  opacity: .6;
+}
+.key-label { font-size: 11px; color: #afa9ec; white-space: nowrap; }
+.key-label.saved { color: #5dcaa5; }
+.key-input {
+  flex: 1;
+  min-width: 200px;
+  padding: 6px 11px;
+  background: rgba(255,255,255,.05);
+  border: .5px solid rgba(127,119,221,.35);
+  border-radius: 7px;
+  color: #e0e4f0;
+  font-size: 12px;
+  font-family: 'Courier New', monospace;
+  outline: none;
+  transition: border-color .2s;
+}
+.key-input:focus { border-color: rgba(127,119,221,.7); }
+.key-input.saved {
+  border-color: rgba(29,158,117,.35);
+  color: #5dcaa5;
+  cursor: default;
+}
+.key-btn {
+  padding: 6px 14px;
+  border-radius: 7px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all .2s;
+}
+.key-save-btn {
+  background: rgba(127,119,221,.2);
+  color: #afa9ec;
+  border: .5px solid rgba(127,119,221,.4);
+}
+.key-save-btn:hover { background: rgba(127,119,221,.35); }
+.key-clear-btn {
+  background: rgba(226,75,74,.1);
+  color: #f09595;
+  border: .5px solid rgba(226,75,74,.25);
+}
+.key-clear-btn:hover { background: rgba(226,75,74,.2); }
+.key-status {
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.key-status .dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+}
+.key-help {
+  font-size: 10px;
+  color: var(--t4);
+  margin-left: auto;
+  text-decoration: none;
+  border-bottom: .5px solid rgba(255,255,255,.1);
+  padding-bottom: 1px;
+  white-space: nowrap;
+}
+.key-help:hover { color: #afa9ec; }
+
+/* 스캔 버튼 활성/비활성 */
+.scan-btn.active {
+  background: rgba(55,138,221,.2);
+  color: #85b7eb;
+  border-color: rgba(55,138,221,.45);
+}
+.scan-btn.inactive {
+  background: rgba(255,255,255,.04);
+  color: var(--t4);
+  border-color: rgba(255,255,255,.1);
+  cursor: not-allowed;
+}
+
+/* 자동 스캔 상태 표시 */
+.auto-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 20px;
+  background: rgba(29,158,117,.06);
+  border-bottom: .5px solid rgba(29,158,117,.2);
+  font-size: 11px;
+  color: var(--t4);
+  flex-wrap: wrap;
+}
+.auto-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--teal);
+  animation: blink 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+.auto-status { color: #5dcaa5; font-weight: 500; }
+.auto-next   { margin-left: auto; color: var(--t4); }
+.auto-toggle {
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-size: 10px;
+  cursor: pointer;
+  background: rgba(29,158,117,.15);
+  color: #5dcaa5;
+  border: .5px solid rgba(29,158,117,.3);
+}
+.auto-toggle:hover { background: rgba(29,158,117,.25); }
+
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     HEADER
+══════════════════════════════════════ -->
+<div class="header">
+  <div class="header-left">
+    <div class="live-dot"></div>
+    <div>
+      <div class="title">Global Situation Room</div>
+      <div class="subtitle">B-System · 글로벌 레짐 대시보드</div>
+    </div>
+  </div>
+  <div class="header-time" id="clock">--</div>
+</div>
+
+<!-- ══════════════════════════════════════
+     INFO BAR (열람용 - API Key 불필요)
+══════════════════════════════════════ -->
+<div class="auto-bar" id="info-bar">
+  <div class="auto-dot"></div>
+  <span class="auto-status">자동 업데이트</span>
+  <span style="color:var(--t4)">오전 8:00 · 오후 6:00 구글 서버 자동 스캔</span>
+  <span class="auto-next" id="auto-next">불러오는 중...</span>
+</div>
+
+<!-- ══════════════════════════════════════
+     REGIME BAR
+══════════════════════════════════════ -->
+<div class="regime-bar">
+  <span class="regime-label">현재 레짐</span>
+  <div class="regime-badge" id="regime-badge">CRISIS</div>
+  <div class="conf-wrap">
+    <div class="conf-track"><div class="conf-fill" id="conf-fill"></div></div>
+    <div class="conf-num" id="conf-num">신뢰도 78%</div>
+  </div>
+  <button class="scan-btn active" id="scan-btn" onclick="loadData()">
+    <div class="spin-icon" id="spin-icon"></div>
+    <span id="btn-label">새로고침</span>
+  </button>
+</div>
+
+<!-- 진행 상태 바 -->
+<div class="progress-bar" id="progress-bar">
+  <div class="progress-fill" id="progress-fill"></div>
+</div>
+
+<!-- 마지막 업데이트 시각 -->
+<div class="last-update" id="last-update"></div>
+
+<!-- 자동 스캔 상태 바 -->
+<div class="auto-bar" id="auto-bar">
+  <div class="auto-dot"></div>
+  <span class="auto-status">자동 스캔 활성</span>
+  <span id="auto-schedule">오전 8:00 · 오후 6:00 자동 실행</span>
+  <span class="auto-next" id="auto-next">다음 스캔: --</span>
+  <button class="auto-toggle" id="auto-toggle" onclick="toggleAuto()">일시정지</button>
+</div>
+
+<!-- ══════════════════════════════════════
+     REASON BAR
+══════════════════════════════════════ -->
+<div class="reason-bar" id="reason-bar">
+  <span>레짐 판단:</span>
+  호르무즈 봉쇄 4주차 · VIX 31 돌파 · WTI $100 돌파 — 복합 위기 레짐 진입
+</div>
+
+<!-- ══════════════════════════════════════
+     MAIN GRID (4 패널)
+══════════════════════════════════════ -->
+<div class="grid">
+
+  <!-- ── 패널 1: 지정학 핫스팟 ── -->
+  <div class="panel" id="panel-geo">
+    <div class="ptitle"><span class="pdot d-red"></span>지정학 핫스팟</div>
+
+    <div class="hotspot">
+      <div class="hotspot-title">이란 · 호르무즈 해협</div>
+      <div class="hotspot-body">
+        3월 2일 이후 실질 봉쇄 지속. 세계 원유 21% 차단.
+        두바이 현물 $126 — WTI 대비 $25 괴리.
+        트럼프 4월 6일 최후통첩 카운트다운.
+      </div>
+    </div>
+
+    <div class="hotspot amber">
+      <div class="hotspot-title">러시아 · 우크라이나</div>
+      <div class="hotspot-body">
+        전선 교착 상태. 미국 지원 규모 축소 논의.
+        유럽 자체 방위 GDP 2% 목표 재확약.
+        독일·폴란드 방산 예산 급증.
+      </div>
+    </div>
+
+    <div class="hotspot teal">
+      <div class="hotspot-title">미·중 · 달러 패권</div>
+      <div class="hotspot-body">
+        중국, 호르무즈 위안화 통행료 수취 개시.
+        달러 패권 구조적 도전 진행 중.
+        대만 직접 충돌 단기 가능성 낮음.
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 패널 2: 에너지 + 금융 ── -->
+  <div class="panel" id="panel-energy">
+    <div class="ptitle"><span class="pdot d-amber"></span>에너지 시장</div>
+
+    <div class="srow">
+      <span class="sname">WTI 원유</span>
+      <div class="sbar-wrap"><div class="sbar b-red" style="width:88%"></div></div>
+      <span class="sval up">$101.4</span>
+    </div>
+    <div class="srow">
+      <span class="sname">브렌트유</span>
+      <div class="sbar-wrap"><div class="sbar b-red" style="width:92%"></div></div>
+      <span class="sval up">$106.1</span>
+    </div>
+    <div class="srow">
+      <span class="sname">두바이 현물</span>
+      <div class="sbar-wrap"><div class="sbar b-red" style="width:99%"></div></div>
+      <span class="sval up">$126.0</span>
+    </div>
+    <div class="srow">
+      <span class="sname">천연가스(HH)</span>
+      <div class="sbar-wrap"><div class="sbar b-amber" style="width:50%"></div></div>
+      <span class="sval mid">$2.92</span>
+    </div>
+
+    <div class="gap"></div>
+    <div class="ptitle"><span class="pdot d-blue"></span>글로벌 금융</div>
+
+    <div class="srow">
+      <span class="sname">S&amp;P 500</span>
+      <div class="sbar-wrap"><div class="sbar b-teal" style="width:60%"></div></div>
+      <span class="sval dn">6,369</span>
+    </div>
+    <div class="srow">
+      <span class="sname">VIX (공포 지수)</span>
+      <div class="sbar-wrap"><div class="sbar b-red" style="width:82%"></div></div>
+      <span class="sval up">31.1</span>
+    </div>
+    <div class="srow">
+      <span class="sname">달러 인덱스</span>
+      <div class="sbar-wrap"><div class="sbar b-amber" style="width:56%"></div></div>
+      <span class="sval mid">99.5</span>
+    </div>
+    <div class="srow">
+      <span class="sname">금 현물</span>
+      <div class="sbar-wrap"><div class="sbar b-red" style="width:95%"></div></div>
+      <span class="sval up">$4,524</span>
+    </div>
+    <div class="srow">
+      <span class="sname">미국채 10Y</span>
+      <div class="sbar-wrap"><div class="sbar b-amber" style="width:60%"></div></div>
+      <span class="sval mid">4.44%</span>
+    </div>
+  </div>
+
+  <!-- ── 패널 3: 한국 시장 ── -->
+  <div class="panel" id="panel-korea">
+    <div class="ptitle"><span class="pdot d-teal"></span>한국 시장</div>
+
+    <div class="srow">
+      <span class="sname">KOSPI</span>
+      <div class="sbar-wrap"><div class="sbar b-teal" style="width:58%"></div></div>
+      <span class="sval dn">5,559</span>
+    </div>
+    <div class="srow">
+      <span class="sname">원 / 달러</span>
+      <div class="sbar-wrap"><div class="sbar b-red" style="width:72%"></div></div>
+      <span class="sval up">1,506</span>
+    </div>
+    <div class="srow">
+      <span class="sname">외국인 수급</span>
+      <div class="sbar-wrap"><div class="sbar b-red" style="width:65%"></div></div>
+      <span class="sval up">순매도</span>
+    </div>
+
+    <div class="gap"></div>
+    <div class="ptitle"><span class="pdot d-teal"></span>한국 수혜주</div>
+
+    <div class="srow">
+      <span class="sname">LIG넥스원</span>
+      <div class="sbar-wrap"><div class="sbar b-teal" style="width:78%"></div></div>
+      <span class="sval dn">+2.45%</span>
+    </div>
+    <div class="srow">
+      <span class="sname">한화에어로스페이스</span>
+      <div class="sbar-wrap"><div class="sbar b-teal" style="width:84%"></div></div>
+      <span class="sval dn">강세</span>
+    </div>
+    <div class="srow">
+      <span class="sname">HD현대중공업</span>
+      <div class="sbar-wrap"><div class="sbar b-teal" style="width:70%"></div></div>
+      <span class="sval dn">LNG 수주</span>
+    </div>
+    <div class="srow">
+      <span class="sname">두산에너빌리티</span>
+      <div class="sbar-wrap"><div class="sbar b-teal" style="width:65%"></div></div>
+      <span class="sval dn">원전 수혜</span>
+    </div>
+    <div class="srow">
+      <span class="sname">현대로템</span>
+      <div class="sbar-wrap"><div class="sbar b-teal" style="width:74%"></div></div>
+      <span class="sval dn">폴란드 수출</span>
+    </div>
+  </div>
+
+  <!-- ── 패널 4: A-System 신호 ── -->
+  <div class="panel" id="panel-signal">
+    <div class="ptitle"><span class="pdot d-blue"></span>A-System 신호</div>
+
+    <div class="signal-top">
+      <div class="dir-badge dir-sell">SELL / HEDGE</div>
+      <div class="stat-box">
+        <span class="stat-label">포지션 계수</span>
+        <span class="stat-val up">0.35</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-label">레짐 지속 예상</span>
+        <span class="stat-val mid">7~14일</span>
+      </div>
+    </div>
+
+    <div class="sec-title">수혜 섹터 (매수 검토)</div>
+    <div class="tags">
+      <span class="tag-g">방산</span>
+      <span class="tag-g">금·귀금속</span>
+      <span class="tag-g">에너지 생산</span>
+      <span class="tag-g">원전</span>
+      <span class="tag-g">LNG 조선</span>
+    </div>
+
+    <div class="sec-title">회피 섹터 (비중 축소)</div>
+    <div class="tags">
+      <span class="tag-r">항공·여행</span>
+      <span class="tag-r">소비재</span>
+      <span class="tag-r">성장주 (기술)</span>
+    </div>
+
+    <div class="insight-box">
+      <div class="insight-label">HQ 인사이트</div>
+      <div class="insight-text">
+        WTI $101은 두바이 현물 $126의 현실을 과소반영.
+        호르무즈 봉쇄가 4월 6일 이후에도 지속되면
+        WTI 2차 급등 + 글로벌 스태그플레이션 진입 가능.
+        금·방산 헷지 유지, 포지션 계수 0.35 고수.
+      </div>
+    </div>
+  </div>
+
+</div><!-- /grid -->
+
+<!-- ══════════════════════════════════════
+     FOOTER
+══════════════════════════════════════ -->
+<div class="footer">
+  Global Situation Room · B-System 레짐 대시보드 · 오전 8:00 / 오후 6:00 자동 스캔
+</div>
+
+<!-- ══════════════════════════════════════
+     SCRIPT: 시계
+══════════════════════════════════════ -->
+<script>
+/* ─── JSONBin 설정 ─── */
+const JSONBIN_BIN = '69cb5772856a682189e4f33d';
+const JSONBIN_URL = 'https://api.jsonbin.io/v3/b/' + JSONBIN_BIN + '/latest';
+
+/* ─── 시계 ─── */
+function tick() {
+  const now = new Date();
+  const y   = now.getFullYear();
+  const m   = String(now.getMonth()+1).padStart(2,'0');
+  const d   = String(now.getDate()).padStart(2,'0');
+  const h   = String(now.getHours()).padStart(2,'0');
+  const min = String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('clock').textContent = y+'.'+m+'.'+d+' '+h+':'+min;
+}
+tick();
+setInterval(tick, 30000);
+
+/* ─── JSONBin에서 데이터 로드 ─── */
+async function loadData() {
+  const btn   = document.getElementById('scan-btn');
+  const spin  = document.getElementById('spin-icon');
+  const label = document.getElementById('btn-label');
+
+  btn.classList.remove('active');
+  btn.classList.add('scanning');
+  spin.style.display = 'block';
+  label.textContent  = '불러오는 중';
+
+  try {
+    const res  = await fetch(JSONBIN_URL, { cache: 'no-store' });
+    const json = await res.json();
+    const d    = json.record;
+
+    if (!d || !d.regime) throw new Error('데이터 없음');
+
+    renderDashboard(d);
+
+    /* 업데이트 시각 표시 */
+    const nextEl = document.getElementById('auto-next');
+    nextEl.textContent = '업데이트: ' + (d.updated_at || '알 수 없음');
+
+    /* 마지막 업데이트 바 */
+    const luEl = document.getElementById('last-update');
+    luEl.textContent = '데이터 기준: ' + (d.updated_at || '');
+    luEl.style.display = 'block';
+
+  } catch(err) {
+    document.getElementById('auto-next').textContent = '로드 실패 — 잠시 후 다시 시도';
+  }
+
+  btn.classList.remove('scanning');
+  btn.classList.add('active');
+  spin.style.display = 'none';
+  label.textContent  = '새로고침';
+}
+
+/* ─── 대시보드 렌더링 ─── */
+function renderDashboard(d) {
+  const regimeTextColors = {
+    'CRISIS':'#f09595','RISK-OFF':'#fac775',
+    'TRANSITION':'#afa9ec','RISK-ON':'#5dcaa5'
+  };
+  const regimeBg = {
+    'CRISIS':'rgba(226,75,74,.18)','RISK-OFF':'rgba(239,159,39,.18)',
+    'TRANSITION':'rgba(127,119,221,.18)','RISK-ON':'rgba(29,158,117,.18)'
+  };
+  const regimeBorder = {
+    'CRISIS':'rgba(226,75,74,.45)','RISK-OFF':'rgba(239,159,39,.45)',
+    'TRANSITION':'rgba(127,119,221,.45)','RISK-ON':'rgba(29,158,117,.45)'
+  };
+
+  const badge = document.getElementById('regime-badge');
+  badge.textContent          = d.regime;
+  badge.style.background     = regimeBg[d.regime]     || regimeBg['TRANSITION'];
+  badge.style.color          = regimeTextColors[d.regime] || '#afa9ec';
+  badge.style.borderColor    = regimeBorder[d.regime]  || 'rgba(127,119,221,.45)';
+
+  let conf = Number(d.confidence) || 50;
+  if (conf <= 10) conf *= 10;
+  conf = Math.min(100, Math.max(5, conf));
+  document.getElementById('conf-fill').style.width      = conf + '%';
+  document.getElementById('conf-fill').style.background = regimeTextColors[d.regime] || '#afa9ec';
+  document.getElementById('conf-num').textContent       = '신뢰도 ' + conf + '%';
+  document.getElementById('reason-bar').innerHTML       = '<span>레짐 판단:</span> ' + d.regime_reason;
+
+  /* 지정학 */
+  document.getElementById('panel-geo').innerHTML =
+    '<div class="ptitle"><span class="pdot d-red"></span>지정학 핫스팟</div>' +
+    d.geopolitical.map(h => `
+      <div class="hotspot ${h.status==='amber'?'amber':h.status==='teal'?'teal':''}">
+        <div class="hotspot-title">${h.title}</div>
+        <div class="hotspot-body">${h.text}</div>
+      </div>`).join('');
+
+  /* 시그널 행 */
+  function sRows(arr) {
+    return arr.map(s => {
+      let sc = Number(s.score)||50;
+      if (sc<=10) sc*=10;
+      sc = Math.min(100,Math.max(12,sc));
+      const bc = s.dir==='up'?'b-red':s.dir==='down'?'b-teal':'b-amber';
+      const vc = s.dir==='up'?'up':s.dir==='down'?'dn':'mid';
+      return `<div class="srow">
+        <span class="sname">${s.name}</span>
+        <div class="sbar-wrap"><div class="sbar ${bc}" style="width:${sc}%"></div></div>
+        <span class="sval ${vc}">${s.value}</span>
+      </div>`;
+    }).join('');
+  }
+
+  document.getElementById('panel-energy').innerHTML =
+    '<div class="ptitle"><span class="pdot d-amber"></span>에너지 시장</div>' +
+    sRows(d.energy) +
+    '<div class="gap"></div>' +
+    '<div class="ptitle"><span class="pdot d-blue"></span>글로벌 금융</div>' +
+    sRows(d.markets);
+
+  const km = d.korea_market || d.korea?.slice(0,3) || [];
+  const ks = d.korea_stocks || d.korea?.slice(3)   || [];
+  document.getElementById('panel-korea').innerHTML =
+    '<div class="ptitle"><span class="pdot d-teal"></span>한국 시장</div>' +
+    sRows(km) +
+    '<div class="gap"></div>' +
+    '<div class="ptitle"><span class="pdot d-teal"></span>한국 수혜주</div>' +
+    sRows(ks);
+
+  const sig = d.signal;
+  const dirLabel = sig.direction==='SELL'?'SELL / HEDGE':sig.direction==='BUY'?'BUY / LONG':'NEUTRAL';
+  const dClass   = sig.direction==='BUY'?'dir-buy':sig.direction==='SELL'?'dir-sell':'dir-neutral';
+  const sfColor  = sig.direction==='BUY'?'dn':sig.direction==='SELL'?'up':'mid';
+
+  document.getElementById('panel-signal').innerHTML = `
+    <div class="ptitle"><span class="pdot d-blue"></span>A-System 신호</div>
+    <div class="signal-top">
+      <div class="dir-badge ${dClass}">${dirLabel}</div>
+      <div class="stat-box">
+        <span class="stat-label">포지션 계수</span>
+        <span class="stat-val ${sfColor}">${Number(sig.sizing).toFixed(2)}</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-label">레짐 지속</span>
+        <span class="stat-val mid">${sig.duration}</span>
+      </div>
+    </div>
+    <div class="sec-title">수혜 섹터 (매수 검토)</div>
+    <div class="tags">${sig.buy_sectors.map(s=>`<span class="tag-g">${s}</span>`).join('')}</div>
+    <div class="sec-title">회피 섹터 (비중 축소)</div>
+    <div class="tags">${sig.sell_sectors.map(s=>`<span class="tag-r">${s}</span>`).join('')}</div>
+    <div class="insight-box">
+      <div class="insight-label">HQ 인사이트</div>
+      <div class="insight-text">${sig.insight}</div>
+    </div>`;
+}
+
+/* ─── 페이지 로드 시 자동 실행 ─── */
+window.addEventListener('load', () => {
+  loadData();
+  /* 5분마다 자동 갱신 */
+  setInterval(loadData, 5 * 60 * 1000);
+});
+</script>
+
+</body>
+</html>
