@@ -789,8 +789,8 @@ function renderDashboard(d) {
 /* ─── 페이지 로드 시 자동 실행 ─── */
 window.addEventListener('load', () => {
   loadData();
-  /* 5분마다 자동 갱신 */
-  setInterval(loadData, 5 * 60 * 1000);
+  /* 1시간 마다 자동 갱신 */
+  setInterval(loadData, 60 * 60 * 1000);
 });
 </script>
 
