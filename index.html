@@ -141,6 +141,53 @@ body {
 }
 @media (max-width: 540px) {
   .grid { grid-template-columns: 1fr; }
+
+  body { font-size: 22px; }
+
+  .header { padding: 14px 16px; }
+  .title  { font-size: 22px; }
+  .subtitle { font-size: 15px; }
+  .header-time { font-size: 14px; }
+
+  .auto-bar { padding: 9px 16px; font-size: 14px; }
+
+  .regime-bar { padding: 12px 16px; gap: 12px; }
+  .regime-badge { font-size: 18px; padding: 7px 20px; }
+  .conf-num { font-size: 14px; }
+  .scan-btn { font-size: 17px; padding: 10px 20px; }
+
+  .reason-bar { font-size: 16px; padding: 10px 16px; line-height: 1.6; }
+  .last-update { font-size: 14px; padding: 7px 16px; }
+
+  .panel { padding: 20px 16px; }
+  .ptitle { font-size: 14px; margin-bottom: 16px; }
+  .pdot { width: 7px; height: 7px; }
+
+  .hotspot { padding: 14px 15px; margin-bottom: 13px; }
+  .hotspot-title { font-size: 19px; margin-bottom: 6px; }
+  .hotspot-body  { font-size: 17px; line-height: 1.65; }
+
+  .srow { padding: 11px 0; }
+  .sname { font-size: 18px; }
+  .sbar-wrap { width: 80px; height: 5px; margin: 0 12px; }
+  .sval  { font-size: 18px; min-width: 90px; }
+
+  .gap { height: 20px; }
+
+  .signal-top { gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+  .dir-badge  { font-size: 20px; padding: 8px 22px; }
+  .stat-label { font-size: 14px; }
+  .stat-val   { font-size: 28px; }
+
+  .sec-title { font-size: 15px; margin-bottom: 9px; }
+  .tags { gap: 8px; margin-bottom: 16px; }
+  .tag-g, .tag-r { font-size: 17px; padding: 6px 16px; }
+
+  .insight-box { padding: 15px 16px; }
+  .insight-label { font-size: 14px; margin-bottom: 9px; }
+  .insight-text  { font-size: 17px; line-height: 1.75; }
+
+  .footer { font-size: 13px; padding: 16px 16px; }
 }
 .panel { background: #0a0e1a; padding: 16px 18px; }
 
@@ -789,8 +836,8 @@ function renderDashboard(d) {
 /* ─── 페이지 로드 시 자동 실행 ─── */
 window.addEventListener('load', () => {
   loadData();
-  /* 1시간 마다 자동 갱신 */
-  setInterval(loadData, 60 * 60 * 1000);
+  /* 5분마다 자동 갱신 */
+  setInterval(loadData, 5 * 60 * 1000);
 });
 </script>
 
